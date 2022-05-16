@@ -66,11 +66,14 @@ func (d *Display) responseHandler() {
 		resp, err := d.client.Receive()
 		if err != nil {
 			fmt.Println(err)
-			d.client.Close()
+			d.Close()
 			return
 		}
-
-		switch resp.REID.(int8) {
+		reid, ok := resp.REID.(int8)
+		if !ok {
+			continue
+		}
+		switch reid {
 		case 0: // PUT/POST response
 			if resp.RNUM >= 400 { // print only errors
 				fmt.Printf("%+v\n", resp)
