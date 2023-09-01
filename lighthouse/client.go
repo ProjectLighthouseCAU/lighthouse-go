@@ -2,7 +2,6 @@ package lighthouse
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -12,8 +11,6 @@ import (
 // Client is the API wrapper for communicating with the lighthouse server
 type Client struct {
 	connection *websocket.Conn
-	writeMutex sync.Mutex
-	readMutex  sync.Mutex
 }
 
 // NewClient creates a new client and connects it to the lighthouse server at the given url
@@ -35,16 +32,12 @@ func (c *Client) Send(req *Request) error {
 	if err != nil {
 		return err
 	}
-	c.writeMutex.Lock()
-	defer c.writeMutex.Unlock()
 	return c.connection.WriteMessage(websocket.BinaryMessage, encoded)
 }
 
 // Receives a response from the websocket connection if available or blocks until a response arrives
 func (c *Client) Receive() (*Response, error) {
-	c.readMutex.Lock()
 	_, encoded, err := c.connection.ReadMessage()
-	c.readMutex.Unlock()
 	if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
 		return nil, fmt.Errorf("websocket connection closed: %w", err)
 	}
@@ -72,8 +65,6 @@ func (c *Client) Close() error {
 	c.connection.SetReadDeadline(time.Now().Add(time.Second))
 
 	// Send close message
-	c.writeMutex.Lock()
-	defer c.writeMutex.Unlock()
 	err := c.connection.WriteControl(websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "connection closed"),
 		time.Now().Add(time.Second))
@@ -83,8 +74,6 @@ func (c *Client) Close() error {
 		return fmt.Errorf("could not send close message: %w", err)
 	}
 	go func() {
-		c.readMutex.Lock()
-		defer c.readMutex.Unlock()
 		for {
 			_, _, err := c.connection.ReadMessage()
 			if err != nil {
