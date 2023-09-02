@@ -93,7 +93,6 @@ func (d *Display) responseHandler() {
 			select {
 			case d.stream <- payl:
 			default:
-				fmt.Println("Stream channel full, skipping")
 			}
 		}
 	}
