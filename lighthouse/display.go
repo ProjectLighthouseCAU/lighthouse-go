@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	channelSize = 100
+	defaultChannelSize = 1
 )
 
 // Display is a simple API wrapper for easy animation or game development
@@ -19,13 +19,17 @@ type Display struct {
 
 // Create a new display
 func NewDisplay(user string, token string, url string) (*Display, error) {
+	return NewDisplayWithChannelSize(user, token, url, defaultChannelSize)
+}
+
+func NewDisplayWithChannelSize(user string, token string, url string, channelSize int) (*Display, error) {
 	c, err := NewClient(url)
 	if err != nil {
 		return nil, err
 	}
 	d := &Display{
 		client:  c,
-		request: NewRequest().Reid(0).Auth(user, token).Verb("POST").Path("user", user, "model"),
+		request: NewRequest().Reid(0).Auth(user, token).Verb("PUT").Path("user", user, "model"),
 		stream:  make(chan []byte, channelSize),
 	}
 	go d.responseHandler()
@@ -35,7 +39,6 @@ func NewDisplay(user string, token string, url string) (*Display, error) {
 // Closes the display and the underlying client
 // You cannot open the display again but instead create a new one
 func (d *Display) Close() {
-	close(d.stream)
 	d.client.Close()
 }
 
@@ -44,7 +47,7 @@ func (d *Display) SendImage(img []byte) error {
 	if len(img) != 28*14*3 {
 		return errors.New("SendImage: Image ([]byte) has wrong size (must be 28*14*3)")
 	}
-	return d.client.Send(d.request.Reid(0).Verb("POST").Payl(img))
+	return d.client.Send(d.request.Reid(0).Verb("PUT").Payl(img))
 }
 
 // Starts the stream and returns a read-only channel containing the images from the stream
