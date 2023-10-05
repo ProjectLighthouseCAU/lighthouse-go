@@ -55,7 +55,8 @@ func DisplayAPI(user, token, url string) {
 	update := rainbow(255)
 	// update := rbgBlink(fps)
 	// update := white(255)
-	// update := color([3]byte{255, 0, 255})
+	// update := color([3]byte{0, 255, 0})
+	// update := rampUp(true, true, true)
 	for {
 		select {
 		case <-interrupt: // close display on interrupt
@@ -148,6 +149,30 @@ func color(color [3]byte) func() []byte {
 		image[i+2] = color[2]
 	}
 	return func() []byte {
+		return image
+	}
+}
+
+func rampUp(r bool, g bool, b bool) func() []byte {
+	image := make([]byte, 28*14*3)
+	return func() []byte {
+		for i := 0; i < len(image); i++ {
+			switch i % 3 {
+			case 0:
+				if r {
+					image[i] += 1
+				}
+			case 1:
+				if g {
+					image[i] += 1
+				}
+			case 2:
+				if b {
+					image[i] += 1
+				}
+			}
+		}
+		fmt.Println("Color: ", image[0])
 		return image
 	}
 }
