@@ -40,7 +40,6 @@ func NewDisplayWithChannelSize(user string, token string, url string, channelSiz
 // You cannot open the display again but instead create a new one
 func (d *Display) Close() {
 	d.client.Close()
-	close(d.stream)
 }
 
 // Sends an image
@@ -70,7 +69,7 @@ func (d *Display) responseHandler() {
 		resp, err := d.client.Receive()
 		if err != nil {
 			fmt.Println(err)
-			d.Close()
+			close(d.stream)
 			return
 		}
 		reid, ok := resp.REID.(int8)
