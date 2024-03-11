@@ -42,6 +42,11 @@ func (d *Display) Close() {
 	d.client.Close()
 }
 
+// Returns a pointer to the underlying client
+func (d *Display) GetClient() *Client {
+	return d.client
+}
+
 // Sends an image
 func (d *Display) SendImage(img []byte) error {
 	if len(img) != 28*14*3 {
