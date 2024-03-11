@@ -12,9 +12,10 @@ const (
 // Display is a simple API wrapper for easy animation or game development
 // Note that the methods are not thread-safe!
 type Display struct {
-	client  *Client
-	request *Request
-	stream  chan []byte
+	client *Client
+	User   string
+	Token  string
+	stream chan []byte
 }
 
 // Create a new display
@@ -28,9 +29,10 @@ func NewDisplayWithChannelSize(user string, token string, url string, channelSiz
 		return nil, err
 	}
 	d := &Display{
-		client:  c,
-		request: NewRequest().Reid(0).Auth(user, token).Verb("PUT").Path("user", user, "model"),
-		stream:  make(chan []byte, channelSize),
+		client: c,
+		User:   user,
+		Token:  token,
+		stream: make(chan []byte, channelSize),
 	}
 	go d.responseHandler()
 	return d, nil
@@ -52,12 +54,12 @@ func (d *Display) SendImage(img []byte) error {
 	if len(img) != 28*14*3 {
 		return errors.New("SendImage: Image ([]byte) has wrong size (must be 28*14*3)")
 	}
-	return d.client.Send(d.request.Reid(0).Verb("PUT").Payl(img))
+	return d.client.Send(NewRequest().Auth(d.User, d.Token).Path("user", d.User, "model").Reid(0).Verb("PUT").Payl(img))
 }
 
 // Starts the stream and returns a read-only channel containing the images from the stream
 func (d *Display) StartStream() (<-chan []byte, error) {
-	if err := d.client.Send(d.request.Reid(1).Verb("STREAM").Payl(nil)); err != nil {
+	if err := d.client.Send(NewRequest().Auth(d.User, d.Token).Path("user", d.User, "model").Reid(1).Verb("STREAM").Payl(nil)); err != nil {
 		return nil, err
 	}
 	return d.stream, nil
@@ -65,7 +67,7 @@ func (d *Display) StartStream() (<-chan []byte, error) {
 
 // Stops the stream
 func (d *Display) StopStream() error {
-	return d.client.Send(d.request.Reid(1).Verb("STOP").Payl(nil))
+	return d.client.Send(NewRequest().Auth(d.User, d.Token).Path("user", d.User, "model").Reid(1).Verb("STOP").Payl(nil))
 }
 
 // Goroutine for handling the responses
