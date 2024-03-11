@@ -10,7 +10,7 @@ import (
 	"github.com/ProjectLighthouseCAU/lighthouse-go/lighthouse"
 )
 
-func DisplayAPI(user, token, url string) {
+func DisplayAPI(user, token, url string, fps int) {
 	// Create a new display
 	d, err := lighthouse.NewDisplay(user, token, url)
 	if err != nil {
@@ -43,8 +43,7 @@ func DisplayAPI(user, token, url string) {
 	// 	}
 	// })
 
-	// Create a ticker to run code 60 times per second
-	const fps int = 60
+	// Create a ticker to run code at fps times per second
 	ticker := time.NewTicker(time.Second / time.Duration(fps))
 	defer ticker.Stop()
 	// Catch interrupts (e.g. Ctrl+C)
