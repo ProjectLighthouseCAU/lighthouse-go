@@ -14,9 +14,9 @@ var (
 )
 
 func init() {
-	flag.StringVar(&user, "user", "Testuser", "username")
-	flag.StringVar(&token, "token", "API-TOK_TEST", "API token")
-	flag.StringVar(&url, "url", "ws://localhost:3000/websocket", "websocket url (ws:// or wss://)")
+	flag.StringVar(&user, "user", "", "username")
+	flag.StringVar(&token, "token", "", "API token")
+	flag.StringVar(&url, "url", "wss://lighthouse.uni-kiel.de/websocket", "websocket url (ws:// or wss://)")
 	flag.IntVar(&fps, "fps", 60, "fps")
 }
 
