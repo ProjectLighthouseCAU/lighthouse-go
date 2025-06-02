@@ -81,9 +81,11 @@ func (d *Display) StopStream(path []string) error {
 	err := d.client.Send(NewRequest().Auth(d.User, d.Token).Path(path...).Reid(pathStr).Verb("STOP").Payl(nil))
 
 	d.streamsLock.Lock()
-	stream := d.streams[pathStr]
-	delete(d.streams, pathStr)
-	close(stream)
+	stream, ok := d.streams[pathStr]
+	if ok {
+		delete(d.streams, pathStr)
+		close(stream)
+	}
 	d.streamsLock.Unlock()
 
 	return err
