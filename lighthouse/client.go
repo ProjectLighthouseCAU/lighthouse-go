@@ -2,6 +2,7 @@ package lighthouse
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -25,7 +26,7 @@ func NewClient(url string) (*Client, error) {
 	c := &Client{
 		connection: conn,
 	}
-	fmt.Println("Connected")
+	log.Println("Connected")
 	return c, nil
 }
 

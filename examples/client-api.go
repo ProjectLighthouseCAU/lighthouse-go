@@ -1,7 +1,7 @@
 package examples
 
 import (
-	"fmt"
+	"log"
 	"sync"
 
 	"github.com/ProjectLighthouseCAU/lighthouse-go/lighthouse"
@@ -11,7 +11,7 @@ func ClientAPI(user, token, url string) {
 	// Create a new client
 	client, err := lighthouse.NewClient(url)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	// Create a request
@@ -26,12 +26,12 @@ func ClientAPI(user, token, url string) {
 		for {
 			resp, err := client.Receive()
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				break
 			}
 			delete(reids, resp.REID.(int8))
 			wg.Done()
-			fmt.Printf("Response: %+v\n", resp)
+			log.Printf("Response: %+v\n", resp)
 		}
 	}()
 
@@ -43,7 +43,7 @@ func ClientAPI(user, token, url string) {
 	}
 	for i = 0; i < n; i++ {
 		request.Reid(i)
-		fmt.Printf("Request: %+v\n", request)
+		log.Printf("Request: %+v\n", request)
 		wg.Add(1)
 		client.Send(request)
 	}
@@ -52,6 +52,6 @@ func ClientAPI(user, token, url string) {
 	client.Close()
 
 	for i := range reids {
-		fmt.Printf("No response for %d\n", i)
+		log.Printf("No response for %d\n", i)
 	}
 }

@@ -1,7 +1,7 @@
 package examples
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"time"
@@ -14,24 +14,24 @@ func DisplayAPI(user, token, url string, fps int) {
 	// Create a new display
 	d, err := lighthouse.NewDisplay(user, token, url)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
 	// Start the stream
 	// stream, err := d.StartStream()
 	// if err != nil {
-	// 	fmt.Println(err)
+	// 	log.Println(err)
 	// 	return
 	// }
 	// go func() {
 	// 	for {
 	// 		img, ok := <-stream
 	// 		if !ok {
-	// 			fmt.Println("stream closed!")
+	// 			log.Println("stream closed!")
 	// 			return
 	// 		}
-	// 		// fmt.Println("first pixel from stream: ", img[0:3])
+	// 		// log.Println("first pixel from stream: ", img[0:3])
 	// 		_ = img
 	// 	}
 	// }()
@@ -39,7 +39,7 @@ func DisplayAPI(user, token, url string, fps int) {
 	// time.AfterFunc(3*time.Second, func() {
 	// 	err := d.StopStream()
 	// 	if err != nil {
-	// 		fmt.Println(err)
+	// 		log.Println(err)
 	// 	}
 	// })
 
@@ -51,11 +51,12 @@ func DisplayAPI(user, token, url string, fps int) {
 	signal.Notify(interrupt, os.Interrupt)
 
 	// choose animation:
-	update := rainbow(255)
+	// update := rainbow(255)
 	// update := rbgBlink(fps)
-	// update := white(255)
+	// update := white(0)
 	// update := color([3]byte{0, 255, 0})
 	// update := rampUp(true, true, true)
+	update := scanLine()
 	for {
 		select {
 		case <-interrupt: // close display on interrupt
@@ -65,7 +66,7 @@ func DisplayAPI(user, token, url string, fps int) {
 			img := update()
 			err := d.SendImage(img)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				return
 			}
 		}
@@ -130,7 +131,7 @@ func rbgBlink(threshold int) func() []byte {
 			} else if idx == 2 {
 				str = "BLUE"
 			}
-			fmt.Println(str)
+			log.Println(str)
 		}
 		return images[idx]
 	}
@@ -171,7 +172,21 @@ func rampUp(r bool, g bool, b bool) func() []byte {
 				}
 			}
 		}
-		fmt.Println("Color: ", image[0])
+		log.Println("Color: ", image[0])
+		return image
+	}
+}
+
+func scanLine() func() []byte {
+	x := 0
+	return func() []byte {
+		image := make([]byte, 28*14*3)
+		for y := 0; y < 14; y++ {
+			image[(y*28+x)*3] = 255
+			image[(y*28+x)*3+1] = 255
+			image[(y*28+x)*3+2] = 255
+		}
+		x = (x + 1) % 28
 		return image
 	}
 }

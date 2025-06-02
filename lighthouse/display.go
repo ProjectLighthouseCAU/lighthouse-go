@@ -2,7 +2,7 @@ package lighthouse
 
 import (
 	"errors"
-	"fmt"
+	"log"
 )
 
 const (
@@ -75,7 +75,7 @@ func (d *Display) responseHandler() {
 	for {
 		resp, err := d.client.Receive()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			close(d.stream)
 			return
 		}
@@ -86,11 +86,11 @@ func (d *Display) responseHandler() {
 		switch reid {
 		case 0: // PUT/POST response
 			if resp.RNUM >= 400 { // print only errors
-				fmt.Printf("%+v\n", resp)
+				log.Printf("%+v\n", resp)
 			}
 		case 1: // STREAM response
 			if resp.RNUM >= 400 { // print only errors
-				fmt.Printf("%+v\n", resp)
+				log.Printf("%+v\n", resp)
 			}
 			// forward to image stream
 			payl, ok := resp.PAYL.([]byte)
