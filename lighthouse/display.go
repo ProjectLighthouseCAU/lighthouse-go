@@ -78,15 +78,15 @@ func (d *Display) Stream(path []string) (<-chan any, error) {
 // Stops the stream
 func (d *Display) StopStream(path []string) error {
 	pathStr := strings.Join(path, "/")
-	if err := d.client.Send(NewRequest().Auth(d.User, d.Token).Path(path...).Reid(pathStr).Verb("STOP").Payl(nil)); err != nil {
-		return err
-	}
+	err := d.client.Send(NewRequest().Auth(d.User, d.Token).Path(path...).Reid(pathStr).Verb("STOP").Payl(nil))
+
 	d.streamsLock.Lock()
 	stream := d.streams[pathStr]
 	delete(d.streams, pathStr)
 	close(stream)
 	d.streamsLock.Unlock()
-	return nil
+
+	return err
 }
 
 // Goroutine for handling the responses
@@ -100,20 +100,30 @@ func (d *Display) responseHandler() {
 			}
 			return
 		}
-		if resp.RNUM >= 400 {
-			log.Printf("%+v\n", resp)
-			continue
-		}
+		// interpret REID as path string
 		key, ok := resp.REID.(string)
 		if !ok {
+			if resp.RNUM >= 400 { // log only errors
+				log.Printf("%+v\n", resp)
+			}
 			continue
 		}
+		// get stream
 		d.streamsLock.Lock()
 		stream, ok := d.streams[key]
 		if !ok {
 			d.streamsLock.Unlock()
 			continue
 		}
+		// close and delete stream on error and log error
+		if resp.RNUM >= 400 {
+			log.Printf("%+v\n", resp)
+			delete(d.streams, key)
+			close(stream)
+			d.streamsLock.Unlock()
+			continue
+		}
+		// send payload to stream
 		stream <- resp.PAYL
 		d.streamsLock.Unlock()
 	}
