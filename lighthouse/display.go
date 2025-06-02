@@ -3,6 +3,8 @@ package lighthouse
 import (
 	"errors"
 	"log"
+	"strings"
+	"sync"
 )
 
 const (
@@ -12,10 +14,12 @@ const (
 // Display is a simple API wrapper for easy animation or game development
 // Note that the methods are not thread-safe!
 type Display struct {
-	client *Client
-	User   string
-	Token  string
-	stream chan []byte
+	client      *Client
+	User        string
+	Token       string
+	channelSize int
+	streams     map[string]chan any
+	streamsLock sync.Mutex
 }
 
 // Create a new display
@@ -29,10 +33,11 @@ func NewDisplayWithChannelSize(user string, token string, url string, channelSiz
 		return nil, err
 	}
 	d := &Display{
-		client: c,
-		User:   user,
-		Token:  token,
-		stream: make(chan []byte, channelSize),
+		client:      c,
+		User:        user,
+		Token:       token,
+		channelSize: channelSize,
+		streams:     make(map[string]chan any),
 	}
 	go d.responseHandler()
 	return d, nil
@@ -58,16 +63,30 @@ func (d *Display) SendImage(img []byte) error {
 }
 
 // Starts the stream and returns a read-only channel containing the images from the stream
-func (d *Display) StartStream() (<-chan []byte, error) {
-	if err := d.client.Send(NewRequest().Auth(d.User, d.Token).Path("user", d.User, "model").Reid(1).Verb("STREAM").Payl(nil)); err != nil {
+func (d *Display) Stream(path []string) (<-chan any, error) {
+	pathStr := strings.Join(path, "/")
+	if err := d.client.Send(NewRequest().Auth(d.User, d.Token).Path(path...).Reid(pathStr).Verb("STREAM").Payl(nil)); err != nil {
 		return nil, err
 	}
-	return d.stream, nil
+	c := make(chan any, d.channelSize)
+	d.streamsLock.Lock()
+	d.streams[pathStr] = c
+	d.streamsLock.Unlock()
+	return c, nil
 }
 
 // Stops the stream
-func (d *Display) StopStream() error {
-	return d.client.Send(NewRequest().Auth(d.User, d.Token).Path("user", d.User, "model").Reid(1).Verb("STOP").Payl(nil))
+func (d *Display) StopStream(path []string) error {
+	pathStr := strings.Join(path, "/")
+	if err := d.client.Send(NewRequest().Auth(d.User, d.Token).Path(path...).Reid(pathStr).Verb("STOP").Payl(nil)); err != nil {
+		return err
+	}
+	d.streamsLock.Lock()
+	stream := d.streams[pathStr]
+	delete(d.streams, pathStr)
+	close(stream)
+	d.streamsLock.Unlock()
+	return nil
 }
 
 // Goroutine for handling the responses
@@ -76,31 +95,26 @@ func (d *Display) responseHandler() {
 		resp, err := d.client.Receive()
 		if err != nil {
 			log.Println(err)
-			close(d.stream)
+			for _, stream := range d.streams {
+				close(stream)
+			}
 			return
 		}
-		reid, ok := resp.REID.(int8)
+		if resp.RNUM >= 400 {
+			log.Printf("%+v\n", resp)
+			continue
+		}
+		key, ok := resp.REID.(string)
 		if !ok {
 			continue
 		}
-		switch reid {
-		case 0: // PUT/POST response
-			if resp.RNUM >= 400 { // print only errors
-				log.Printf("%+v\n", resp)
-			}
-		case 1: // STREAM response
-			if resp.RNUM >= 400 { // print only errors
-				log.Printf("%+v\n", resp)
-			}
-			// forward to image stream
-			payl, ok := resp.PAYL.([]byte)
-			if !ok || len(payl) != 28*14*3 {
-				continue
-			}
-			select {
-			case d.stream <- payl:
-			default:
-			}
+		d.streamsLock.Lock()
+		stream, ok := d.streams[key]
+		if !ok {
+			d.streamsLock.Unlock()
+			continue
 		}
+		stream <- resp.PAYL
+		d.streamsLock.Unlock()
 	}
 }

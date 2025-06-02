@@ -19,7 +19,8 @@ func DisplayAPI(user, token, url string, fps int) {
 	}
 
 	// Start the stream
-	// stream, err := d.StartStream()
+	// path := []string{"user", user, "model"}
+	// stream, err := d.Stream(path)
 	// if err != nil {
 	// 	log.Println(err)
 	// 	return
@@ -35,9 +36,9 @@ func DisplayAPI(user, token, url string, fps int) {
 	// 		_ = img
 	// 	}
 	// }()
-	// Stop stream again after 3 seconds
+	// // Stop stream again after 3 seconds
 	// time.AfterFunc(3*time.Second, func() {
-	// 	err := d.StopStream()
+	// 	err := d.StopStream(path)
 	// 	if err != nil {
 	// 		log.Println(err)
 	// 	}
